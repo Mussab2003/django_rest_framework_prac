@@ -1,7 +1,11 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Person
-from home.serializers import PeopleSerializer
+from home.serializers import PeopleSerializer, LoginSerializer, RegisterSerializer
+from rest_framework.views import APIView
+from rest_framework import status
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
 
 @api_view(['GET', 'POST', 'PUT','PATCH'])
 def index(request):
@@ -62,3 +66,45 @@ def people(request):
         data = request.data
         obj = Person.objects.get(id = data['id']).delete()
         return Response('Person deleted successfully')
+
+@api_view(['POST'])
+def signup(request):
+    data = request.data
+    serializer = LoginSerializer(data = data)
+    if serializer.is_valid():
+        data = serializer.validated_data
+        return Response('User created successfully')
+    else:
+        return Response(serializer.errors)
+    
+
+#class based api views
+class Student(APIView):
+    def get(self, request):
+        return Response('GET request called')
+    
+    def post(self, request):
+        return Response('POST request called')
+    
+    def delete(
+        self, request):
+        return Response('DELETE request called')
+    
+
+
+class register(APIView):
+    def post(self, request):
+        serializer = RegisterSerializer(data = request.data)
+        if not serializer.is_valid():
+            return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()
+        return Response('User created successfully', status=status.HTTP_201_CREATED)
+        
+class login(APIView):
+    def post(self, request):
+        serializer = LoginSerializer(data = request.data)
+        if not serializer.is_valid():
+            return Response({'error' : serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        user = authenticate(username = serializer.data['username'], password = serializer.data['password'])
+        token, _ = Token.objects.get_or_create(user = user)
+        
